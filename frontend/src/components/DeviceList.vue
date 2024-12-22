@@ -20,3 +20,9 @@ onMounted(async () => {
   await deviceStore.loadDevices();
 });
 </script>
+
+<style scoped>
+div {
+  background-color: aliceblue;
+}
+</style>
