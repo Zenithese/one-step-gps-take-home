@@ -87,6 +87,28 @@ const renderMarkers = () => {
   });
 };
 
+const calculateCenter = (points: { lat: number; lng: number }[]): { lat: number; lng: number } => {
+  const sum = points.reduce(
+    (acc, point) => {
+      acc.lat += point.lat;
+      acc.lng += point.lng;
+      return acc;
+    },
+    { lat: 0, lng: 0 }
+  );
+
+  return {
+    lat: sum.lat / points.length,
+    lng: sum.lng / points.length,
+  };
+};
+
+const fitMapToMarkers = (map: google.maps.Map, markers: { lat: number; lng: number }[]) => {
+  const bounds = new google.maps.LatLngBounds();
+  markers.forEach((marker) => bounds.extend(marker));
+  map.fitBounds(bounds);
+};
+
 onMounted(async () => {
   const loader = new Loader({
     apiKey,
@@ -95,14 +117,17 @@ onMounted(async () => {
   });
 
   await loader.load();
+  await deviceStore.loadDevices();
 
   if (mapRef.value) {
+    const markerPositions = devices.value.map((device) => device.position);
     map.value = new google.maps.Map(mapRef.value, {
-      center: { lat: 37.7749, lng: -122.4194 },
-      zoom: 12,
+      center: calculateCenter(markerPositions),
+      zoom: 2,
     });
 
     renderMarkers();
+    fitMapToMarkers(map.value, markerPositions);
   }
 });
 
