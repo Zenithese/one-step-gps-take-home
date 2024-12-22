@@ -10,7 +10,7 @@ const map = ref<google.maps.Map | null>(null);
 const clickedInfoWindows = ref<string[]>([]);
 const markers = ref<Map<string, google.maps.Marker>>(new Map());
 
-const apiKey = "";
+const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const renderMarkers = () => {
   markers.value.forEach((marker) => marker.setMap(null));

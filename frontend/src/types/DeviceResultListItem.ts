@@ -3,6 +3,7 @@ export interface DeviceResultListItem {
     display_name: string;
     active_status: string;
     latest_device_point: {
+        speed: number;
         device_state: {
             drive_status: string;
             lat: number;

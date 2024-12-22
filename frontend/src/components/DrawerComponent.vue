@@ -33,7 +33,7 @@ const toggleSidebar = () => {
 }
 
 .hidden {
-  transform: translateX(-80%);
+  transform: translateX(-100%);
 }
 
 .slide-enter-active,
@@ -48,11 +48,12 @@ const toggleSidebar = () => {
 
 .toggleButton {
   position: absolute;
-  top: 20px;
-  right: 0;
+  top: 10px;
+  right: -70px;
   z-index: 1100;
   background-color: white;
   border: none;
+  border-radius: 2px;
   padding: 10px 15px;
 }
 </style>
