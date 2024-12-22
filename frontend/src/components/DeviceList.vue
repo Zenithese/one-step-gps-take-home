@@ -11,14 +11,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
 import { useDeviceStore } from "@/stores/deviceStore";
-
 const deviceStore = useDeviceStore();
-
-onMounted(async () => {
-  await deviceStore.loadDevices();
-});
 </script>
 
 <style scoped>
