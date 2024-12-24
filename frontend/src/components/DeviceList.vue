@@ -4,6 +4,14 @@
             v-for="(device, index) in deviceStore.devices" 
             :key="device.id" 
             class="flex flex-col">
+            <div v-if="index === 0" class="drop-space"
+                    :class="{ 
+                        'drag-over': hoverIndex === -1, 
+                    }"
+                    @dragleave="onDragLeave"
+                    @dragover.prevent="(event) => {}"
+                    @drop="() => onDrop(-1)"
+                ></div>
             <div
                 id="device"
                 class="relative"
@@ -13,6 +21,7 @@
                 draggable="true"
                 @dragstart="onDragStart(index)"
                 @dragover.prevent="(event) => onDragOver(index, event)"
+                @drop="() => onDrop(index)"
             >
                 <section :class="`container status-${powerStatus(device.driveState)}`">
                 <strong>{{ device.name }}</strong>
@@ -68,8 +77,8 @@
                     'drag-hidden': dragStartIndex === index 
                 }"
                 @dragleave="onDragLeave"
-                @dragover.prevent="(event) => {}"
-                @drop="(event) => onDrop(index)"
+                @dragover.prevent="() => {}"
+                @drop="() => onDrop(index)"
             />
         </div>
     </ul>
@@ -96,7 +105,11 @@ const onDragOver = (index: number, event: DragEvent) => {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     if (!rect) return;
     const middle = rect.top + rect.height / 2;
-    hoverIndex.value = event.clientY < middle ? index - 1 : index;
+    if (!index && event.clientY < middle) {
+        hoverIndex.value = -1;
+    } else {
+        hoverIndex.value = event.clientY < middle ? index - 1 : index;
+    }
 };
 
 const onDragLeave = (event: DragEvent) => {
@@ -111,10 +124,15 @@ const onDrop = (index: number) => {
   const devices = [...deviceStore.devices];
   const draggedItem = devices[dragStartIndex];
   devices.splice(dragStartIndex, 1);
-  const newIndex = dragStartIndex > index ? index + 1 : index;
-  const newOrder = [...devices.slice(0, newIndex), draggedItem, ...devices.slice(newIndex)];
 
-  deviceStore.devices = newOrder;
+  if (index === -1) {
+    deviceStore.devices = [draggedItem, ...devices];
+  } else {
+    const idx = hoverIndex.value ?? index;
+    const newIndex = dragStartIndex > idx ? idx + 1 : idx;
+    deviceStore.devices = [...devices.slice(0, newIndex), draggedItem, ...devices.slice(newIndex)];
+  }
+
   dragStartIndex = null;
   hoverIndex.value = null;
 };
@@ -125,7 +143,6 @@ ul {
   list-style-type: none;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   padding: 1rem;
   padding-right: 0;
   padding-top: .5rem;
@@ -169,7 +186,6 @@ li {
     height: 10px;
     position: relative;
     left: -1rem;
-    
 }
 
 .status-on::before {
@@ -182,7 +198,6 @@ li {
 
 ul > div {
   display: flex;
-  gap: 0.5rem;
   
 }
 
@@ -191,8 +206,31 @@ ul > div {
 }
 
 .drag-over {
-    height: 117px;
-    transition: height 0.2s ease;
-    background-color: aqua;
+  height: 117px;
+  background: 
+        linear-gradient(90deg, #1E90FF 50%, transparent 0) repeat-x,
+        linear-gradient(90deg, #1E90FF 50%, transparent 0) repeat-x,
+        linear-gradient(0deg, #1E90FF 50%, transparent 0) repeat-y,
+        linear-gradient(0deg, #1E90FF 50%, transparent 0) repeat-y;
+    background-size: 4px 2px, 4px 2px, 2px 4px, 2px 4px;
+    background-position: 0 0, 0 100%, 0 0, 100% 0;
+  position: relative;
+  animation: linearGradientMove .3s infinite linear;
+}
+
+@keyframes linearGradientMove {
+    100% {
+        background-position: 4px 0, -4px 100%, 0 -4px, 100% 4px;
+    }
+}
+
+.drag-over::after{
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(30, 144, 255, 0.1);
 }
 </style>
