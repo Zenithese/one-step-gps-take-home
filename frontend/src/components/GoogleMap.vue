@@ -104,6 +104,10 @@ onMounted(async () => {
     map.value = new google.maps.Map(mapRef.value, {
       center: calculateCenter(markerPositions),
       zoom: 2,
+      mapTypeControlOptions: {
+        position: google.maps.ControlPosition.TOP_CENTER,
+        style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+      },
     });
 
     renderMarkers();
