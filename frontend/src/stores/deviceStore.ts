@@ -31,10 +31,13 @@ export const useDeviceStore = defineStore("deviceStore", {
             id: device.device_id,
             name: device.display_name,
             position: latLng,
-            activeState: device.active_status,
+            activeState: device.active_state,
             driveState: device.latest_device_point.device_state.drive_status,
             speed: device.latest_device_point.speed,
             address: await getAddressFromLatLng(latLng),
+            rssi: device.latest_device_point.params.rssi,
+            hdop: device.latest_device_point.params.hdop,
+            gpsLev: device.latest_device_point.params.gpslev,
           };
         })
       );

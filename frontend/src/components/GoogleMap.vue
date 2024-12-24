@@ -2,6 +2,8 @@
 import { onMounted, ref, watch } from "vue";
 import { Loader } from "@googlemaps/js-api-loader";
 import { useDeviceStore } from "@/stores/deviceStore";
+import { calculateCenter } from "@/utils/GoogleMap.util/calculateCenter";
+import { fitMapToMarkers } from "@/utils/GoogleMap.util/fitMapToMarkers";
 
 const deviceStore = useDeviceStore();
 const devices = ref(deviceStore.devices);
@@ -85,28 +87,6 @@ const renderMarkers = () => {
 
     markers.value.set(device.id, marker);
   });
-};
-
-const calculateCenter = (points: { lat: number; lng: number }[]): { lat: number; lng: number } => {
-  const sum = points.reduce(
-    (acc, point) => {
-      acc.lat += point.lat;
-      acc.lng += point.lng;
-      return acc;
-    },
-    { lat: 0, lng: 0 }
-  );
-
-  return {
-    lat: sum.lat / points.length,
-    lng: sum.lng / points.length,
-  };
-};
-
-const fitMapToMarkers = (map: google.maps.Map, markers: { lat: number; lng: number }[]) => {
-  const bounds = new google.maps.LatLngBounds();
-  markers.forEach((marker) => bounds.extend(marker));
-  map.fitBounds(bounds);
 };
 
 onMounted(async () => {

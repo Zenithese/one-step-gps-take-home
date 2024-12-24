@@ -8,4 +8,8 @@ export interface Device {
     activeState: string;
     driveState: string;
     speed: number;
+    address: string | null;
+    rssi: string;
+    hdop: string;
+    gpsLev: string;
   }
