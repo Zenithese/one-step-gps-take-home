@@ -3,15 +3,16 @@
         <div
             v-for="(device, index) in deviceStore.devices" 
             :key="device.id" 
-            class="flex flex-col">
-            <div v-if="index === 0" class="drop-space"
-                    :class="{ 
-                        'drag-over': hoverIndex === -1, 
-                    }"
-                    @dragleave="onDragLeave"
-                    @dragover.prevent="(event) => {}"
-                    @drop="() => onDrop(-1)"
-                ></div>
+            class="flex flex-col"
+        >
+            <div 
+                v-if="index === 0" 
+                class="drop-space"
+                :class="{ 'drag-over': hoverIndex === -1 }"
+                @dragleave="onDragLeave"
+                @dragover.prevent="(event) => {}"
+                @drop="() => onDrop(-1)"
+            />
             <div
                 id="device"
                 class="relative"
@@ -102,7 +103,7 @@ const onDragStart = (index: number) => {
 };
 
 const onDragOver = (index: number, event: DragEvent) => {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const rect = (event.currentTarget as HTMLElement)?.getBoundingClientRect();
     if (!rect) return;
     const middle = rect.top + rect.height / 2;
     if (!index && event.clientY < middle) {
@@ -113,7 +114,7 @@ const onDragOver = (index: number, event: DragEvent) => {
 };
 
 const onDragLeave = (event: DragEvent) => {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const rect = (event.currentTarget as HTMLElement)?.getBoundingClientRect();
     if (!rect) return;
     if (event.clientX > rect.width) hoverIndex.value = null;
 };
