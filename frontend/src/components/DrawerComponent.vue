@@ -1,6 +1,6 @@
 <template>
   <transition name="slide">
-    <section v-show="{ sidebar: true, hidden: !visible }" :class="{ sidebar: true, hidden: !visible }">
+    <section v-show="{ sidebar: true, ishidden: !visible }" :class="{ sidebar: true, ishidden: !visible }">
       <button class="toggleButton" @click="toggleSidebar">
         {{ visible ? "Hide" : "Show" }}
       </button>
@@ -32,7 +32,7 @@ const toggleSidebar = () => {
   transition: transform 0.3s ease-in-out;
 }
 
-.hidden {
+.ishidden {
   transform: translateX(-100%);
 }
 

@@ -1,7 +1,7 @@
 export interface DeviceResultListItem {
     device_id: string;
     display_name: string;
-    active_status: string;
+    active_state: string;
     latest_device_point: {
         speed: number;
         device_state: {
@@ -13,5 +13,8 @@ export interface DeviceResultListItem {
                 lng: number;
             };
         };
+        params: {
+            [key: string]: string;
+        }
     };
   }
