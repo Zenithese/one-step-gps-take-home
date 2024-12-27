@@ -1,9 +1,7 @@
 package config
 
 import (
-	"log"
-	"os"
-	"github.com/joho/godotenv"
+	"backend/internal/utils"
 )
 
 var (
@@ -14,18 +12,10 @@ var (
 	DBName     string
 )
 
-func LoadConfig() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
-	}
-
-	DBUser = os.Getenv("DB_USER")
-	DBPassword = os.Getenv("DB_PASSWORD")
-	DBHost = os.Getenv("DB_HOST")
-	DBPort = os.Getenv("DB_PORT")
-	DBName = os.Getenv("DB_NAME")
-
-	if DBUser == "" || DBPassword == "" || DBHost == "" || DBPort == "" || DBName == "" {
-		log.Fatal("Missing required environment variables")
-	}
+func LoadConfig() {	
+	DBUser = utils.MustGetEnv("DB_USER")
+	DBPassword = utils.MustGetEnv("DB_PASSWORD")
+	DBHost = utils.MustGetEnv("DB_HOST")
+	DBPort = utils.MustGetEnv("DB_PORT")
+	DBName = utils.MustGetEnv("DB_NAME")
 }

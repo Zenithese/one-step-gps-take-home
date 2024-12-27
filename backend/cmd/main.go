@@ -7,36 +7,63 @@ import (
 	"backend/internal/config"
 	"backend/internal/db"
 	"backend/internal/repositories"
+	"backend/internal/middleware"
+	"backend/internal/utils"
 )
 
 func main() {
+	utils.LoadEnv()
+
 	config.LoadConfig()
 	db.InitDB()
 	defer db.CloseDB()
 
 	preferenceRepo := repositories.NewPreferenceRepository(db.DB)
 	preferenceHandler := handlers.NewPreferenceHandler(preferenceRepo)
+	authRepo := repositories.NewAuthRepository(db.DB)
+	authHandler := handlers.NewAuthHandler(authRepo)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/fetch-track-data", handlers.FetchTrackData)
-	mux.HandleFunc("/api/preferences", preferenceHandler.UpdatePreferences)
-	mux.HandleFunc("/api/preferences/fetch", preferenceHandler.FetchPreferences)
+	mux.HandleFunc("/api/signup", authHandler.SignupHandler)
+	mux.HandleFunc("/api/login", authHandler.LoginHandler)
+	mux.HandleFunc("/api/logout", middleware.AuthMiddleware(authHandler.LogoutHandler))
+	mux.HandleFunc("/api/fetch-track-data", middleware.AuthMiddleware(handlers.FetchTrackData))
+	mux.HandleFunc("/api/preferences", middleware.AuthMiddleware(preferenceHandler.UpdatePreferences))
+	mux.HandleFunc("/api/preferences/fetch", middleware.AuthMiddleware(preferenceHandler.FetchPreferences))
+
 
 	log.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
+	log.Fatal(http.ListenAndServe(":8080", middleware.CORSMiddleware(mux)))
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+// package main
 
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+// import (
+// 	"log"
+// 	"net/http"
+// 	"backend/internal/handlers"
+// 	"backend/internal/config"
+// 	"backend/internal/db"
+// 	"backend/internal/repositories"
+// 	"backend/internal/utils"
+// 	"backend/internal/middleware"
+// )
 
-		next.ServeHTTP(w, r)
-	})
-}
+// func main() {
+// 	utils.LoadEnv()
+
+// 	config.LoadConfig()
+// 	db.InitDB()
+// 	defer db.CloseDB()
+
+// 	preferenceRepo := repositories.NewPreferenceRepository(db.DB)
+// 	preferenceHandler := handlers.NewPreferenceHandler(preferenceRepo)
+
+// 	mux := http.NewServeMux()
+// 	mux.HandleFunc("/api/fetch-track-data", handlers.FetchTrackData)
+// 	mux.HandleFunc("/api/preferences", preferenceHandler.UpdatePreferences)
+// 	mux.HandleFunc("/api/preferences/fetch", preferenceHandler.FetchPreferences)
+
+// 	log.Println("Server is running on port 8080...")
+// 	log.Fatal(http.ListenAndServe(":8080", middleware.CORSMiddleware(mux)))
+// }

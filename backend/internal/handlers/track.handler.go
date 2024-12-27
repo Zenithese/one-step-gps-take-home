@@ -5,16 +5,9 @@ import (
 	"net/http"
 	"fmt"
 	"os"
-	"log"
-	"github.com/joho/godotenv"
 )
 
 func FetchTrackData(w http.ResponseWriter, r *http.Request) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
-
 	url := fmt.Sprintf("https://track.onestepgps.com/v3/api/public/device?latest_point=true&api-key=%s", os.Getenv("OSGPS_API_KEY"))
 	resp, err := http.Get(url)
 	if err != nil {
