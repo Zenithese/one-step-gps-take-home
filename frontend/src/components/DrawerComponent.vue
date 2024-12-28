@@ -4,7 +4,6 @@
       <button class="toggleButton" @click="toggleSidebar">
         {{ visible ? "Hide" : "Show" }}
       </button>
-      <LogoutButton additionalClass="absolute top-[70px] right-[-97px] z-[1100]"/>
       <slot />
     </section>
   </transition>
@@ -12,7 +11,6 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import LogoutButton from "./LogoutButton.vue";
 
 const visible = ref(true);
 
