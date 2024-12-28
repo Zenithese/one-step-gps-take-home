@@ -1,4 +1,3 @@
-
 DROP TABLE IF EXISTS device_photo;
 DROP TABLE IF EXISTS preference;
 DROP TABLE IF EXISTS users;
@@ -12,8 +11,8 @@ CREATE TABLE users (
 
 CREATE TABLE preference (
     user_id INT NOT NULL,
-    device_order JSON DEFAULT NULL,
-    hidden_devices JSON DEFAULT NULL,
+    device_order JSON,
+    hidden_devices JSON,
     PRIMARY KEY (user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
@@ -26,7 +25,18 @@ CREATE TABLE device_photo (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- INSERT INTO preference
---   (id, device_order, hidden_devices)
--- VALUES
---   (1, '[]', '[]');
+DELIMITER $$
+
+CREATE TRIGGER set_default_preferences
+BEFORE INSERT ON preference
+FOR EACH ROW
+BEGIN
+    IF NEW.device_order IS NULL THEN
+        SET NEW.device_order = '[]';
+    END IF;
+    IF NEW.hidden_devices IS NULL THEN
+        SET NEW.hidden_devices = '[]';
+    END IF;
+END$$
+
+DELIMITER ;

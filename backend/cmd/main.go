@@ -26,6 +26,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/signup", authHandler.SignupHandler)
 	mux.HandleFunc("/api/login", authHandler.LoginHandler)
+	mux.HandleFunc("/api/check-session", middleware.AuthMiddleware(http.HandlerFunc(authHandler.CheckSessionHandler)))
 	mux.HandleFunc("/api/logout", middleware.AuthMiddleware(authHandler.LogoutHandler))
 	mux.HandleFunc("/api/fetch-track-data", middleware.AuthMiddleware(handlers.FetchTrackData))
 	mux.HandleFunc("/api/preferences", middleware.AuthMiddleware(preferenceHandler.UpdatePreferences))

@@ -1,7 +1,8 @@
 import axios from "axios";
 import { type Preferences } from "@/types/Preferences";
 
-const API_URL = process.env.VUE_APP_API_URL;
+axios.defaults.withCredentials = true;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export async function updatePreferences(preferences: Preferences) {
   await axios.put(`${API_URL}/preferences`, preferences);

@@ -97,6 +97,7 @@ onMounted(async () => {
   });
 
   await loader.load();
+  await deviceStore.loadPreferences();
   await deviceStore.loadDevices();
 
   if (mapRef.value) {

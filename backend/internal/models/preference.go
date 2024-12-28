@@ -1,7 +1,7 @@
 package models
 
 type Preference struct {
-    DeviceOrder   []string          `json:"deviceOrder"`
-    HiddenDevices []string          `json:"hiddenDevices"`
-    DevicePhotos  map[string][]byte `json:"devicePhotos"`
+    DeviceOrder   []string          `json:"device_order"`
+    HiddenDevices []string          `json:"hidden_devices"`
+    DevicePhotos  map[string][]byte `json:"device_photos"`
 }
