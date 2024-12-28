@@ -134,6 +134,9 @@ const onDrop = (index: number) => {
     deviceStore.devices = [...devices.slice(0, newIndex), draggedItem, ...devices.slice(newIndex)];
   }
 
+  const newOrder = deviceStore.devices.map((device) => device.id);
+  deviceStore.reorderDevices(newOrder);
+
   dragStartIndex = null;
   hoverIndex.value = null;
 };
