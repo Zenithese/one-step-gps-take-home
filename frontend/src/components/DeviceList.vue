@@ -4,6 +4,8 @@
             v-for="(device, index) in deviceStore.devices" 
             :key="device.id" 
             class="flex flex-col"
+            :class="{ 'opacity-50': deviceStore.ui.hiddenDevicesVisible && deviceStore.preferences.hiddenDevices.includes(device.id) }"
+            @contextmenu.prevent="showContextMenu($event, device)"
         >
             <div 
                 v-if="index === 0" 
@@ -83,6 +85,16 @@
             />
         </div>
     </ul>
+
+    <div
+      v-if="contextMenu.visible"
+      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
+      class="context-menu"
+    >
+      <ul>
+        <li @click="hide()">{{ contextMenu.text }}</li>
+      </ul>
+    </div>
   </template>
 
 <script setup lang="ts">
@@ -91,12 +103,21 @@ import { rssiInterpreter } from "@/utils/Device/rssiInterpreter";
 import { driveStateFormatter } from "@/utils/Device/driveStateFormatter";
 import { convertKmhToMph } from "@/utils/Device/convertKmhToMph";
 import { ref } from "vue";
+import { type Device } from "@/types/Device";
 
 const deviceStore = useDeviceStore();
 const powerStatus = (driveState: string) => (driveState === "off" ? "off" : "on");
 
 let dragStartIndex: number | null = null;
 const hoverIndex = ref<number | null>(null);
+
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  target: {} as Device,
+  text: "",
+});
 
 const onDragStart = (index: number) => {
   dragStartIndex = index;
@@ -140,6 +161,30 @@ const onDrop = (index: number) => {
   dragStartIndex = null;
   hoverIndex.value = null;
 };
+
+const hide = () => {
+    const target = contextMenu.value.target! as Device;
+    if (target) {
+        const deviceId = target.id;
+        deviceStore.toggleHiddenDevice(deviceId);
+        contextMenu.value.visible = false;
+    }
+};
+
+const showContextMenu = (event: MouseEvent, device: Device) => {
+  event.preventDefault();
+  contextMenu.value = {
+    visible: true,
+    x: event.clientX,
+    y: event.clientY,
+    target: device,
+    text: deviceStore.preferences.hiddenDevices.includes(device.id) ? "Show" : "Hide",
+  };
+};
+
+document.addEventListener("click", () => {
+  contextMenu.value.visible = false;
+});
 </script>
 
 <style scoped>
@@ -236,5 +281,29 @@ ul > div {
     width: 100%;
     height: 100%;
     background-color: rgba(30, 144, 255, 0.1);
+}
+
+.context-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid black;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  border-radius: 4px;
+}
+
+.context-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.context-menu li {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.context-menu:hover {
+  background: #f5f5f5;
 }
 </style>

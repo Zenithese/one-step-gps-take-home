@@ -23,12 +23,16 @@ const getAddressFromLatLng = async (latLng: { lat: number; lng: number }): Promi
 
 export const useDeviceStore = defineStore("deviceStore", {
   state: () => ({
+    allDevices: [] as Device[],
     devices: [] as Device[],
     preferences: {
       deviceOrder: [] as string[],
       hiddenDevices: [] as string[],
       devicePhotos: {} as Record<string, string>,
     } as Preferences,
+    ui: {
+        hiddenDevicesVisible: false,
+    }
   }),
   actions: {
     async loadDevices() {
@@ -51,6 +55,7 @@ export const useDeviceStore = defineStore("deviceStore", {
         })
       );
 
+      this.allDevices = devices;
       this.devices = this.applyPreferencesToDevices(devices);
     },
 
@@ -85,7 +90,7 @@ export const useDeviceStore = defineStore("deviceStore", {
       } else {
         this.preferences.hiddenDevices.splice(hiddenIndex, 1);
       }
-      this.devices = this.applyPreferencesToDevices(this.devices);
+      this.devices = this.applyPreferencesToDevices(this.allDevices);
       this.savePreferences();
     },
 
@@ -94,8 +99,13 @@ export const useDeviceStore = defineStore("deviceStore", {
       this.savePreferences();
     },
 
+    toggleUiHiddenDevicesVisible() {
+      this.ui.hiddenDevicesVisible = !this.ui.hiddenDevicesVisible;
+      this.devices = this.applyPreferencesToDevices(this.allDevices);
+    },
+
     applyPreferencesToDevices(devices: Device[]): Device[] {
-      const hiddenDevicesSet = new Set(this.preferences.hiddenDevices);
+      const hiddenDevicesSet = new Set(this.ui.hiddenDevicesVisible ? undefined : this.preferences.hiddenDevices);
       const reorderedDevices: Device[] = [];
 
       for (const deviceId of this.preferences.deviceOrder) {

@@ -1,9 +1,14 @@
 <template>
   <transition name="slide">
     <section v-show="{ sidebar: true, ishidden: !visible }" :class="{ sidebar: true, ishidden: !visible }">
-      <button class="toggleButton" @click="toggleSidebar">
-        {{ visible ? "Hide" : "Show" }}
-      </button>
+      <ButtonComponent additionalClass="toggleButton" @click="toggleSidebar">
+        <img
+          :src="`/device-icons/${visible ? 'close-outline' : 'menu-outline'}.svg`"
+          :alt="`${visible ? 'menu-outline' : 'close-outline'}`"
+          width="20px"
+        />
+      </ButtonComponent>
+      <slot name="buttons" v-if="visible" />
       <slot />
     </section>
   </transition>
@@ -11,6 +16,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import ButtonComponent from "./ButtonComponent.vue";
 
 const visible = ref(true);
 
@@ -49,11 +55,10 @@ const toggleSidebar = () => {
 .toggleButton {
   position: absolute;
   top: 10px;
-  right: -70px;
+  right: -60px;
   z-index: 1100;
-  background-color: white;
-  border: none;
-  border-radius: 2px;
-  padding: 10px 15px;
+  --button-bg-color: white;
+  --button-hover-bg-color: #f5f5f5;
+  --button-active-bg-color: #f5f5f5;
 }
 </style>
