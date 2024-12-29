@@ -2,9 +2,11 @@ package repositories
 
 import (
     "database/sql"
+    "encoding/base64"
     "encoding/json"
     "log"
     "backend/internal/models"
+    "strings"
 )
 
 type PreferenceRepository struct {
@@ -70,18 +72,27 @@ func (r *PreferenceRepository) SavePreferences(userID int, prefs *models.Prefere
         }
     }
 
-    if prefs.DevicePhotos != nil {
-        for deviceID, photo := range prefs.DevicePhotos {
-            _, err := tx.Exec(`
-                INSERT INTO device_photo (user_id, device_id, photo_blob)
-                VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                photo_blob = VALUES(photo_blob)
-            `, userID, deviceID, photo)
-            if err != nil {
-                tx.Rollback()
-                return err
-            }
+    for deviceID, photoBase64 := range prefs.DevicePhotos {
+        const base64Prefix = "data:image/png;base64,"
+        if strings.HasPrefix(photoBase64, base64Prefix) {
+            photoBase64 = strings.TrimPrefix(photoBase64, base64Prefix)
+        }
+    
+        decodedPhoto, err := base64.StdEncoding.DecodeString(photoBase64)
+        if err != nil {
+            tx.Rollback()
+            return err
+        }
+    
+        _, err = tx.Exec(`
+            INSERT INTO device_photo (user_id, device_id, photo_blob)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            photo_blob = VALUES(photo_blob)
+        `, userID, deviceID, decodedPhoto)
+        if err != nil {
+            tx.Rollback()
+            return err
         }
     }
 
@@ -102,9 +113,6 @@ func (r *PreferenceRepository) GetPreferences(userID int) (*models.Preference, e
         return nil, err
     }
 
-    // log.Printf("deviceOrderJSON: %s", deviceOrderJSON)
-    // log.Printf("hiddenDevicesJSON: %s", hiddenDevicesJSON)
-
     if err := json.Unmarshal(deviceOrderJSON, &prefs.DeviceOrder); err != nil {
         return nil, err
     }
@@ -118,7 +126,9 @@ func (r *PreferenceRepository) GetPreferences(userID int) (*models.Preference, e
     }
     defer rows.Close()
 
-    prefs.DevicePhotos = make(map[string][]byte)
+    prefs.DevicePhotos = make(map[string]string)
+
+    const base64Prefix = "data:image/png;base64,"
 
     for rows.Next() {
         var deviceID string
@@ -127,7 +137,7 @@ func (r *PreferenceRepository) GetPreferences(userID int) (*models.Preference, e
             log.Printf("Error scanning device_photo row: %v", err)
             continue
         }
-        prefs.DevicePhotos[deviceID] = photoBlob
+        prefs.DevicePhotos[deviceID] = base64Prefix + base64.StdEncoding.EncodeToString(photoBlob)
     }
 
     return prefs, nil

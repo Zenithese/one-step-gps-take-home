@@ -1,0 +1,1 @@
+export const powerStatus = (driveState: string) => (driveState === "off" ? "off" : "on");

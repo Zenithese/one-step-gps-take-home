@@ -51,9 +51,10 @@
                 <div>
                     <div class="min-w-4">
                     <img
-                        src="/device-icons/person-outline.svg"
-                        alt="person-outline"
-                        width="10px"
+                        :src="deviceStore.preferences.devicePhotos[device.id] || '/device-icons/person-outline.svg'"
+                        alt="Device Photo"
+                        width="20px"
+                        class="rounded-full"
                     />
                     </div>
                     <div class="grow">{{ device.name }}</div>
@@ -93,20 +94,27 @@
     >
       <ul>
         <li @click="hide()">{{ contextMenu.text }}</li>
+        <li @click="uploadPhoto()">Upload Photo</li>
       </ul>
     </div>
   </template>
+
+<!-- <img
+:src="deviceStore.preferences.devicePhotos[device.id] || '/default-photo-path.svg'"
+alt="Device Photo"
+width="50px"
+/> -->
 
 <script setup lang="ts">
 import { useDeviceStore } from "@/stores/deviceStore";
 import { rssiInterpreter } from "@/utils/Device/rssiInterpreter";
 import { driveStateFormatter } from "@/utils/Device/driveStateFormatter";
 import { convertKmhToMph } from "@/utils/Device/convertKmhToMph";
+import { powerStatus } from "@/utils/Device/powerStatus";
 import { ref } from "vue";
 import { type Device } from "@/types/Device";
 
 const deviceStore = useDeviceStore();
-const powerStatus = (driveState: string) => (driveState === "off" ? "off" : "on");
 
 let dragStartIndex: number | null = null;
 const hoverIndex = ref<number | null>(null);
@@ -160,6 +168,41 @@ const onDrop = (index: number) => {
 
   dragStartIndex = null;
   hoverIndex.value = null;
+};
+
+const uploadPhoto = async () => {
+  const targetDevice = contextMenu.value.target as Device;
+
+  if (!targetDevice) {
+    console.error("No device selected for photo upload.");
+    return;
+  }
+
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+
+  input.addEventListener("change", async (event: Event) => {
+    const file = (event.target as HTMLInputElement)?.files?.[0];
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Photo = reader.result as string;
+        deviceStore.updateDevicePhoto(targetDevice.id, base64Photo);
+        await deviceStore.savePreferences();
+        console.log(`Photo uploaded for device: ${targetDevice.name}`);
+      };
+
+      reader.onerror = () => {
+        console.error("Error reading the uploaded file.");
+      };
+
+      reader.readAsDataURL(file);
+    }
+  });
+
+  input.click();
 };
 
 const hide = () => {
@@ -303,7 +346,8 @@ ul > div {
   cursor: pointer;
 }
 
-.context-menu:hover {
+.context-menu li:hover {
   background: #f5f5f5;
+  border-radius: 4px;
 }
 </style>

@@ -2,8 +2,8 @@
 import { onMounted, ref, watch } from "vue";
 import { Loader } from "@googlemaps/js-api-loader";
 import { useDeviceStore } from "@/stores/deviceStore";
-import { calculateCenter } from "@/utils/GoogleMap.util/calculateCenter";
-import { fitMapToMarkers } from "@/utils/GoogleMap.util/fitMapToMarkers";
+import { calculateCenter } from "@/utils/GoogleMap/calculateCenter";
+import { fitMapToMarkers } from "@/utils/GoogleMap/fitMapToMarkers";
 
 const deviceStore = useDeviceStore();
 const devices = ref(deviceStore.devices);
@@ -48,6 +48,15 @@ const renderMarkers = () => {
       position: device.position,
       map: map.value,
       title: device.name,
+      icon: deviceStore.preferences.devicePhotos[device.id] && {
+      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+          <circle cx="20" cy="20" r="20" fill="${device.activeState === "off" ? "#fb3c3c" : "#2aee32"}" />
+          <image x="4" y="4" width="32" height="32" href="${deviceStore.preferences.devicePhotos[device.id]}" clip-path="circle(16px at 16px 16px)" />
+        </svg>
+      `)}`,
+      scaledSize: new google.maps.Size(40, 40),
+    },
     });
 
     const infoWindow = new google.maps.InfoWindow();
