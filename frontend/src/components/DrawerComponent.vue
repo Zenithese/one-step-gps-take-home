@@ -30,7 +30,7 @@ const toggleSidebar = () => {
   position: absolute;
   top: 0;
   left: 0;
-  width: 300px;
+  width: 325px;
   height: 100vh;
   background-color: white;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);

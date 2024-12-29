@@ -4,8 +4,13 @@
             v-for="(device, index) in deviceStore.devices" 
             :key="device.id" 
             class="flex flex-col"
-            :class="{ 'opacity-50': deviceStore.ui.hiddenDevicesVisible && deviceStore.preferences.hiddenDevices.includes(device.id) }"
+            :class="{ 
+                'opacity-50': deviceStore.ui.hiddenDevicesVisible && deviceStore.preferences.hiddenDevices.includes(device.id),
+                'hoverable': hoverable, }"
             @contextmenu.prevent="showContextMenu($event, device)"
+            @mousemove="updateTooltipPosition($event)"
+            @mouseenter="showTooltip = true"
+            @mouseleave="showTooltip = false"
         >
             <div 
                 v-if="index === 0" 
@@ -25,6 +30,7 @@
                 @dragstart="onDragStart(index)"
                 @dragover.prevent="(event) => onDragOver(index, event)"
                 @drop="() => onDrop(index)"
+                @mousedown="onMouseDown"
             >
                 <section :class="`container status-${powerStatus(device.driveState)}`">
                 <strong>{{ device.name }}</strong>
@@ -72,8 +78,18 @@
                     <div class="grow">{{ device.address }}</div>
                 </div>
                 </section>
-                <section class="min-w-[55px] flex items-center">
-                <strong>{{ Math.round(convertKmhToMph(device.speed)) }} mph</strong>
+                <section class="min-w-[75px] flex items-center justify-between">
+                <strong class="min-w-[50px] text-end">{{ Math.round(convertKmhToMph(device.speed)) }} mph</strong>
+                <img
+                    :src="`/device-icons/ellipsis-vertical-outline.svg`"
+                    :alt="`ellipsis-vertical-outline`"
+                    width="16px"
+                    @click.stop="showContextMenu($event, device)"
+                    @mousedown.stop
+                    @mouseenter="showTooltip = false"
+                    @mouseleave="showTooltip = true"
+                    class="cursor-pointer w-6 h-6"
+                />
                 </section>
             </div>
             <div
@@ -89,15 +105,22 @@
         </div>
     </ul>
 
+    <!-- Context menu -->
     <div
       v-if="contextMenu.visible"
       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
       class="context-menu"
+      @mouseover="showTooltip = false"
     >
       <ul>
         <li @click="hide()">{{ contextMenu.text }}</li>
-        <li @click="uploadPhoto()">Upload Photo</li>
+        <li @click="uploadPhoto()" class="text-nowrap">Upload Photo</li>
       </ul>
+    </div>
+
+    <!-- Tooltip -->
+    <div v-if="showTooltip && hoverable" class="tooltip" :style="{ top: `${tooltip.y}px`, left: `${tooltip.x}px` }">
+        Drag me
     </div>
   </template>
 
@@ -115,10 +138,10 @@ const deviceStore = useDeviceStore();
 
 let dragStartIndex: number | null = null;
 const hoverIndex = ref<number | null>(null);
+const hoverable = ref(true);
 const awaitedColoredSvg = reactive<Record<string, string | null>>({});
-
-console.log('thing', awaitedColoredSvg.value);
-
+const showTooltip = ref(false);
+const tooltip = ref({ x: 0, y: 0 });
 const contextMenu = ref({
   visible: false,
   x: 0,
@@ -127,8 +150,17 @@ const contextMenu = ref({
   text: "",
 });
 
+const onMouseDown = () => {
+    if (hoverable.value) {
+        hoverable.value = false;
+    };
+    if (contextMenu.value.visible) {
+        contextMenu.value.visible = false;
+    };
+};
+
 const onDragStart = (index: number) => {
-  dragStartIndex = index;
+    dragStartIndex = index;
 };
 
 const onDragOver = (index: number, event: DragEvent) => {
@@ -150,6 +182,14 @@ const onDragLeave = (event: DragEvent) => {
 
 const onDrop = (index: number) => {
   if (dragStartIndex === null) return;
+
+  if (!hoverable.value) {
+    hoverable.value = true;
+  }
+
+  if (showTooltip.value) {
+    showTooltip.value = false;
+  }
 
   const devices = [...deviceStore.devices];
   const draggedItem = devices[dragStartIndex];
@@ -229,6 +269,11 @@ document.addEventListener("click", () => {
   contextMenu.value.visible = false;
 });
 
+const updateTooltipPosition = (event: MouseEvent) => {
+  tooltip.value.x = event.clientX + 10;
+  tooltip.value.y = event.clientY + 10;
+};
+
 const loadColoredSvgs = async () => {
   for (const device of deviceStore.devices) {
     const color = deviceStore.ui.colors[device.id]?.hex || "#a3a3a3";
@@ -268,6 +313,27 @@ ul > div > div {
 .container > div {
   display: flex;
   gap: 4px;
+}
+
+.hoverable {
+  position: relative;
+}
+
+.hoverable:hover {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.hoverable:hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -1rem;
+  height: 100%;
+  width: calc(100% + 1rem);
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  z-index: -1;
 }
 
 img {
@@ -347,7 +413,7 @@ ul > div {
   background: white;
   border: 1px solid black;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  z-index: 2000;
   border-radius: 4px;
 }
 
@@ -365,5 +431,17 @@ ul > div {
 .context-menu li:hover {
   background: #f5f5f5;
   border-radius: 4px;
+}
+
+.tooltip {
+  position: absolute;
+  background-color: #333;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1000;
+  pointer-events: none;
+  white-space: nowrap;
 }
 </style>
