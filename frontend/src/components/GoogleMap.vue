@@ -10,13 +10,38 @@ const devices = ref(deviceStore.devices);
 const mapRef = ref<HTMLElement | null>(null);
 const map = ref<google.maps.Map | null>(null);
 const clickedInfoWindows = ref<string[]>([]);
-const markers = ref<Map<string, google.maps.Marker>>(new Map());
+const markers = ref<google.maps.Marker[]>([]);
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-const renderMarkers = () => {
+const initializeMap = () => {
+  if (mapRef.value) {
+    const markerPositions = devices.value.map((device) => device.position);
+    map.value = new google.maps.Map(mapRef.value, {
+      center: calculateCenter(markerPositions),
+      zoom: 2,
+      mapTypeControlOptions: {
+        position: google.maps.ControlPosition.TOP_CENTER,
+        style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+      },
+    });
+
+    // google.maps.event.addListenerOnce(map.value, "idle", () => {
+    //   map.value?.panBy(-100, 0);
+    // });
+
+    renderMarkers();
+    fitMapToMarkers(map.value, markerPositions);
+  }
+}
+
+const clearMarkers = () => {
   markers.value.forEach((marker) => marker.setMap(null));
-  markers.value.clear();
+  markers.value = [];
+};
+
+const renderMarkers = () => {
+  clearMarkers();
 
   devices.value.forEach((device) => {
     const marker = new google.maps.Marker({
@@ -85,7 +110,7 @@ const renderMarkers = () => {
       );
     });
 
-    markers.value.set(device.id, marker);
+    markers.value.push(marker);
   });
 };
 
@@ -100,27 +125,16 @@ onMounted(async () => {
   await deviceStore.loadPreferences();
   await deviceStore.loadDevices();
 
-  if (mapRef.value) {
-    const markerPositions = devices.value.map((device) => device.position);
-    map.value = new google.maps.Map(mapRef.value, {
-      center: calculateCenter(markerPositions),
-      zoom: 2,
-      mapTypeControlOptions: {
-        position: google.maps.ControlPosition.TOP_CENTER,
-        style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-      },
-    });
-
-    renderMarkers();
-    fitMapToMarkers(map.value, markerPositions);
-  }
+  initializeMap();
 });
 
 watch(
   () => deviceStore.devices,
   (newDevices) => {
     devices.value = newDevices;
-    renderMarkers();
+    if (deviceStore.devices.length !== markers.value.length) {
+      initializeMap();
+    }
   },
   { deep: true }
 );
