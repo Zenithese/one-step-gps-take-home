@@ -50,12 +50,14 @@
                 </div>
                 <div>
                     <div class="min-w-4">
-                    <img
-                        :src="deviceStore.preferences.devicePhotos[device.id] || '/device-icons/person-outline.svg'"
-                        alt="Device Photo"
-                        width="20px"
-                        class="rounded-full"
-                    />
+                        <img
+                            v-if="deviceStore.preferences.devicePhotos[device.id]"
+                            :src="deviceStore.preferences.devicePhotos[device.id]"
+                            alt="Device Photo"
+                            width="16px"
+                            class="rounded-full"
+                        />
+                        <div v-else v-html="awaitedColoredSvg[device.id]" class="relative right-[2px] w-[16px]"></div>
                     </div>
                     <div class="grow">{{ device.name }}</div>
                 </div>
@@ -99,25 +101,23 @@
     </div>
   </template>
 
-<!-- <img
-:src="deviceStore.preferences.devicePhotos[device.id] || '/default-photo-path.svg'"
-alt="Device Photo"
-width="50px"
-/> -->
-
 <script setup lang="ts">
 import { useDeviceStore } from "@/stores/deviceStore";
 import { rssiInterpreter } from "@/utils/Device/rssiInterpreter";
 import { driveStateFormatter } from "@/utils/Device/driveStateFormatter";
 import { convertKmhToMph } from "@/utils/Device/convertKmhToMph";
 import { powerStatus } from "@/utils/Device/powerStatus";
-import { ref } from "vue";
+import { reactive, ref, watch } from "vue";
 import { type Device } from "@/types/Device";
+import { changeSvgColor } from "@/utils/helpers/changeSvgColor";
 
 const deviceStore = useDeviceStore();
 
 let dragStartIndex: number | null = null;
 const hoverIndex = ref<number | null>(null);
+const awaitedColoredSvg = reactive<Record<string, string | null>>({});
+
+console.log('thing', awaitedColoredSvg.value);
 
 const contextMenu = ref({
   visible: false,
@@ -228,6 +228,22 @@ const showContextMenu = (event: MouseEvent, device: Device) => {
 document.addEventListener("click", () => {
   contextMenu.value.visible = false;
 });
+
+const loadColoredSvgs = async () => {
+  for (const device of deviceStore.devices) {
+    const color = deviceStore.ui.colors[device.id]?.hex || "#a3a3a3";
+    const svg = await changeSvgColor(`/device-icons/person-outline.svg`, color);
+    awaitedColoredSvg[device.id] = svg;
+  }
+};
+
+watch(
+  () => deviceStore.devices,
+  async () => {
+    await loadColoredSvgs();
+  },
+  { deep: true, immediate: true }
+);
 </script>
 
 <style scoped>

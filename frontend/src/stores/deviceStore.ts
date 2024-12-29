@@ -5,6 +5,7 @@ import { type Device } from "@/types/Device";
 import { type Preferences } from "@/types/Preferences";
 import { convertToCamelCase } from "@/utils/Device/convertToCamelCase";
 import { convertToSnakeCase } from "@/utils/Device/convertToSnakeCase";
+import { colorsArray } from "@/utils/helpers/colorArray";
 
 const getAddressFromLatLng = async (latLng: { lat: number; lng: number }): Promise<string | null> => {
   const geocoder = new google.maps.Geocoder();
@@ -32,6 +33,7 @@ export const useDeviceStore = defineStore("deviceStore", {
     } as Preferences,
     ui: {
         hiddenDevicesVisible: false,
+        colors: {} as Record<string, { name: string; hex: string }>,
     }
   }),
   actions: {
@@ -57,6 +59,17 @@ export const useDeviceStore = defineStore("deviceStore", {
 
       this.allDevices = devices;
       this.devices = this.applyPreferencesToDevices(devices);
+
+      if (Object.keys(this.ui.colors).length < this.allDevices.length) {
+        this.assignColors();
+      }
+    },
+
+    assignColors() {
+        const sorted = this.allDevices.sort((a, b) => a.id.localeCompare(b.id));
+        this.ui.colors = Object.fromEntries(
+            sorted.map((device, index) => [device.id, colorsArray[index]])
+        );
     },
 
     async loadPreferences() {
