@@ -110,6 +110,7 @@ export const useDeviceStore = defineStore("deviceStore", {
     updateDevicePhoto(deviceId: string, photo: string) {
       this.preferences.devicePhotos[deviceId] = photo;
       this.savePreferences();
+      this.preferences.devicePhotos = { ...this.preferences.devicePhotos };
     },
 
     toggleUiHiddenDevicesVisible() {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { Loader } from "@googlemaps/js-api-loader";
 import { useDeviceStore } from "@/stores/deviceStore";
 import { calculateCenter } from "@/utils/GoogleMap/calculateCenter";
@@ -10,7 +10,8 @@ const devices = ref(deviceStore.devices);
 const mapRef = ref<HTMLElement | null>(null);
 const map = ref<google.maps.Map | null>(null);
 const clickedInfoWindows = ref<string[]>([]);
-const markers = ref<google.maps.Marker[]>([]);
+const markers = ref<{ marker: google.maps.Marker; deviceId: string }[]>([]);
+const pollInterval = ref<NodeJS.Timeout | null>(null);
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -26,24 +27,18 @@ const initializeMap = () => {
       },
     });
 
-    // google.maps.event.addListenerOnce(map.value, "idle", () => {
-    //   map.value?.panBy(-100, 0);
-    // });
-
     renderMarkers();
     fitMapToMarkers(map.value, markerPositions);
   }
 }
 
 const clearMarkers = () => {
-  markers.value.forEach((marker) => marker.setMap(null));
+  markers.value.forEach(({ marker }) => marker.setMap(null));
   markers.value = [];
 };
 
 const renderMarkers = () => {
   clearMarkers();
-
-  console.log(window.location.origin)
 
   devices.value.forEach((device) => {
     const marker = new google.maps.Marker({
@@ -52,25 +47,27 @@ const renderMarkers = () => {
       title: device.name,
       icon:  {
       url: deviceStore.preferences.devicePhotos[device.id] ? (
-        `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
-          <circle cx="20" cy="20" r="20" fill="${device.driveState === "off" ? "#fb3c3c" : "#2aee32"}" />
-          <image x="4" y="4" width="32" height="32" href="${deviceStore.preferences.devicePhotos[device.id]}" clip-path="circle(16px at 16px 16px)" />
-        </svg>
-      `)}`
-    ) : (
-      `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
-          <circle cx="20" cy="20" r="20" fill="${device.driveState === "off" ? "#fb3c3c" : "#2aee32"}" />
-          <circle cx="20" cy="20" r="16" fill="white" />
-          <svg x="10" y="10" width="20" height="20" viewBox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg" fill="${deviceStore.ui.colors[device.id].hex}">
-            <path d="M480-480q-60 0-102-42t-42-102q0-60 42-102t102-42q60 0 102 42t42 102q0 60-42 102t-102 42ZM192-192v-96q0-23 12.5-43.5T239-366q55-32 116.29-49 61.29-17 124.5-17t124.71 17Q666-398 721-366q22 13 34.5 34t12.5 44v96H192Zm72-72h432v-24q0-5.18-3.03-9.41-3.02-4.24-7.97-6.59-46-28-98-42t-107-14q-55 0-107 14t-98 42q-5 4-8 7.72-3 3.73-3 8.28v24Zm216.21-288Q510-552 531-573.21t21-51Q552-654 530.79-675t-51-21Q450-696 429-674.79t-21 51Q408-594 429.21-573t51 21Zm-.21-72Zm0 360Z"/>
+          `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+            <circle cx="20" cy="20" r="20" fill="${device.driveState === "off" ? "#fb3c3c" : "#2aee32"}" />
+            <image x="4" y="4" width="32" height="32" href="${deviceStore.preferences.devicePhotos[device.id]}" clip-path="circle(16px at 16px 16px)" />
           </svg>
-        </svg>
-      `)}`
-    ),
-      scaledSize: new google.maps.Size(40, 40),
-    },
+        `)}`
+      ) : (
+        `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+            <circle cx="20" cy="20" r="20" fill="${device.driveState === "off" ? "#fb3c3c" : "#2aee32"}" />
+            <circle cx="20" cy="20" r="16" fill="white" />
+            <svg x="10" y="10" width="20" height="20" viewBox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg" fill="${deviceStore.ui.colors[device.id].hex}">
+              <path d="M480-480q-60 0-102-42t-42-102q0-60 42-102t102-42q60 0 102 42t42 102q0 60-42 102t-102 42ZM192-192v-96q0-23 12.5-43.5T239-366q55-32 116.29-49 61.29-17 124.5-17t124.71 17Q666-398 721-366q22 13 34.5 34t12.5 44v96H192Zm72-72h432v-24q0-5.18-3.03-9.41-3.02-4.24-7.97-6.59-46-28-98-42t-107-14q-55 0-107 14t-98 42q-5 4-8 7.72-3 3.73-3 8.28v24Zm216.21-288Q510-552 531-573.21t21-51Q552-654 530.79-675t-51-21Q450-696 429-674.79t-21 51Q408-594 429.21-573t51 21Zm-.21-72Zm0 360Z"/>
+            </svg>
+          </svg>
+        `)}`
+      ),
+        scaledSize: new google.maps.Size(40, 40),
+      },
+      visible: !deviceStore.preferences.hiddenDevices.includes(device.id) && !deviceStore.ui.hiddenDevicesVisible,
+      
     });
 
     const infoWindow = new google.maps.InfoWindow();
@@ -133,7 +130,7 @@ const renderMarkers = () => {
       );
     });
 
-    markers.value.push(marker);
+    markers.value.push({ marker, deviceId: device.id });
   });
 };
 
@@ -149,14 +146,79 @@ onMounted(async () => {
   await deviceStore.loadDevices();
 
   initializeMap();
+
+  pollInterval.value = setInterval(async () => {
+    await deviceStore.loadDevices();
+  }, 60000);
+
+});
+
+onUnmounted(() => {
+  if (pollInterval.value) {
+    clearInterval(pollInterval.value);
+  }
 });
 
 watch(
-  () => deviceStore.devices,
-  (newDevices) => {
-    devices.value = newDevices;
-    if (deviceStore.devices.length !== markers.value.length) {
+  [() => deviceStore.ui.hiddenDevicesVisible, () => deviceStore.preferences.devicePhotos, () => deviceStore.allDevices],
+  ([newhiddenDevicesVisible, newPhotos, newAllDevices], [oldhiddenDevicesVisible, oldPhotos, oldAllDevices]) => {
+
+    if (newAllDevices.some((newDevice, index) => {
+            const oldDevice = oldAllDevices[index];
+            if (!oldDevice) {
+              return true;
+            }
+            return (
+              newDevice.id !== oldDevice.id ||
+              newDevice.position.lat !== oldDevice.position.lat ||
+              newDevice.position.lng !== oldDevice.position.lng ||
+              newDevice.driveState !== oldDevice.driveState
+            );
+          })
+    ) {
+      devices.value = newAllDevices;
       initializeMap();
+    }
+
+    if (newhiddenDevicesVisible !== oldhiddenDevicesVisible) {
+      if (newhiddenDevicesVisible) {
+        markers.value.forEach(({ marker }) => marker.setVisible(true));
+      } else {
+        markers.value.forEach(({ marker, deviceId }) => {
+          if (deviceStore.preferences.hiddenDevices.includes(deviceId)) {
+            marker.setVisible(false);
+          }
+        });
+      }
+    }
+
+    if (newPhotos !== oldPhotos) {
+      markers.value.forEach(({ marker, deviceId }) => {
+        const driveState = newAllDevices.find((device) => device.id === deviceId)?.driveState;
+        marker.setValues({
+          icon: {
+            url: deviceStore.preferences.devicePhotos[deviceId] ? (
+              `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+                  <circle cx="20" cy="20" r="20" fill="${driveState === "off" ? "#fb3c3c" : "#2aee32"}" />
+                  <image x="4" y="4" width="32" height="32" href="${deviceStore.preferences.devicePhotos[deviceId]}" clip-path="circle(16px at 16px 16px)" />
+                </svg>
+              `)}`
+              ) : (
+                `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+                    <circle cx="20" cy="20" r="20" fill="${driveState === "off" ? "#fb3c3c" : "#2aee32"}" />
+                    <circle cx="20" cy="20" r="16" fill="white" />
+                    <svg x="10" y="10" width="20" height="20" viewBox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg" fill="${deviceStore.ui.colors[deviceId].hex}">
+                      <path d="M480-480q-60 0-102-42t-42-102q0-60 42-102t102-42q60 0 102 42t42 102q0 60-42 102t-102 42ZM192-192v-96q0-23 12.5-43.5T239-366q55-32 116.29-49 61.29-17 124.5-17t124.71 17Q666-398 721-366q22 13 34.5 34t12.5 44v96H192Zm72-72h432v-24q0-5.18-3.03-9.41-3.02-4.24-7.97-6.59-46-28-98-42t-107-14q-55 0-107 14t-98 42q-5 4-8 7.72-3 3.73-3 8.28v24Zm216.21-288Q510-552 531-573.21t21-51Q552-654 530.79-675t-51-21Q450-696 429-674.79t-21 51Q408-594 429.21-573t51 21Zm-.21-72Zm0 360Z"/>
+                    </svg>
+                  </svg>
+                `)}`
+              ),
+            scaledSize: new google.maps.Size(40, 40),
+          }
+      })
+    });
     }
   },
   { deep: true }
