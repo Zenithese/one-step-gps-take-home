@@ -28,7 +28,7 @@ services:
 
   db:
     image: mysql:8.0
-    container_name: mysql
+    container_name: mysql-for-osgpsth-justin-andersen
     ports:
       - "3307:3306"
     environment:
